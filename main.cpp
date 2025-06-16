@@ -45,46 +45,6 @@ double convertToDecimalDegrees(const std::string& raw, const std::string& direct
     return decimal;
 }
 
-// Extract distance from AI file message
-double extractDistanceFromAIFile() {
-    std::ifstream ai_file(AI_TRIGGER_FILE);
-    if (!ai_file.is_open()) {
-        return 0.0;
-    }
-
-    std::string line;
-    std::getline(ai_file, line);
-    ai_file.close();
-
-    // Regex pattern to match "Avg Depth: X.XX meters"
-    std::regex pattern(R"(Avg Depth:\s*([0-9]+(?:\.[0-9]+)?)\s*meters)");
-    std::smatch matches;
-    
-    if (std::regex_search(line, matches, pattern)) {
-        if (matches.size() > 1) {
-            try {
-                return std::stod(matches[1].str());
-            } catch (...) {
-                std::cerr << "Error parsing distance value" << std::endl;
-            }
-        }
-    }
-    return 0.0;
-}
-
-// Adjust coordinates by distance (default bearing = 0° North)
-void adjustCoordinates(double& lat, double& lon, double distance, double bearing = 0.0) {
-    const double R = 6378137.0; // Earth's radius in meters
-    double bearing_rad = bearing * M_PI / 180.0;
-    double lat_rad = lat * M_PI / 180.0;
-    double lon_rad = lon * M_PI / 180.0;
-
-    double new_lat_rad = lat_rad + (distance / R) * cos(bearing_rad);
-    double new_lon_rad = lon_rad + (distance / R) * sin(bearing_rad) / cos(lat_rad);
-
-    lat = new_lat_rad * 180.0 / M_PI;
-    lon = new_lon_rad * 180.0 / M_PI;
-}
 
 // Run script in thread
 void runScript(const std::string& command) {
@@ -99,7 +59,7 @@ int main() {
         return 1;
     }
 
-    // Configure UART
+         // Configure UART
     struct termios options;
     tcgetattr(serial_fd, &options);
     cfsetispeed(&options, BAUDRATE);
@@ -137,12 +97,7 @@ int main() {
                             // Check if AI file has content
                             std::ifstream ai_check(AI_TRIGGER_FILE);
                             if (ai_check.peek() != std::ifstream::traits_type::eof()) {
-                                // Extract distance from AI file
-                                double distance = extractDistanceFromAIFile();
-                                if (distance > 0) {
-                                    adjustCoordinates(latitude, longitude, distance);
-                                    std::cout << "Adjusted coordinates by " << distance << " meters" << std::endl;
-                                }
+
                             // Save coordinates (adjusted or original)
                             std::ofstream outfile(OUTPUT_FILE);
                             if (outfile.is_open()) {
